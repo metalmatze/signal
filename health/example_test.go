@@ -57,7 +57,7 @@ func Example() {
 	//
 	// {
 	//     "goroutine-threshold": "OK",
-	//     "upstream-dep-dns": "lookup upstream.example.com: no such host"
+	//     "upstream-dep-http": "Get http://upstream-svc.example.com:8080/healthy: dial tcp: lookup upstream-svc.example.com on 127.0.0.11:53: no such host"
 	// }
 }
 
@@ -127,7 +127,7 @@ func Example_advanced() {
 	//
 	// {
 	//     "custom-check-with-timeout": "timed out after 50ms",
-	//     "upstream-dep-http": "Get \"http://upstream-svc.example.com:8080/healthy\": dial tcp: lookup upstream-svc.example.com: no such host"
+	//     "upstream-dep-http": "Get http://upstream-svc.example.com:8080/healthy: dial tcp: lookup upstream-svc.example.com on 127.0.0.11:53: no such host"
 	// }
 }
 
