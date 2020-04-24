@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 
@@ -29,13 +30,15 @@ import (
 )
 
 func Example() {
+	_, upstreamURL := upstream() // Mock some upstream Server
+
 	// Create a Handler that we can use to register liveness and readiness checks.
 	health := NewHandler()
 
 	// Add a readiness check to make sure an upstream dependency resolves in DNS.
 	// If this fails we don't want to receive requests, but we shouldn't be
 	// restarted or rescheduled.
-	upstreamHost := "upstream.example.com"
+	upstreamHost := upstreamURL.Hostname()
 	health.AddReadinessCheck(
 		"upstream-dep-dns",
 		DNSResolveCheck(upstreamHost, 50*time.Millisecond))
@@ -51,11 +54,14 @@ func Example() {
 	fmt.Print(dumpRequest(health, "GET", "/ready"))
 
 	// Output:
-	// HTTP/1.1 503 Service Unavailable
+	// HTTP/1.1 200 OK
 	// Connection: close
 	// Content-Type: application/json; charset=utf-8
 	//
-	// {}
+	// {
+	//     "goroutine-threshold": "OK",
+	//     "upstream-dep-dns": "OK"
+	// }
 }
 
 func Example_database() {
@@ -74,7 +80,7 @@ func Example_database() {
 	// go http.ListenAndServe("0.0.0.0:8080", health)
 
 	// Make a request to the readiness endpoint and print the response.
-	fmt.Print(dumpRequest(health, "GET", "/ready?full=1"))
+	fmt.Print(dumpRequest(health, "GET", "/ready"))
 
 	// Output:
 	// HTTP/1.1 200 OK
@@ -87,21 +93,24 @@ func Example_database() {
 }
 
 func Example_advanced() {
+	upstream, _ := upstream() // Mock some upstream Server
+
 	// Create a Handler that we can use to register liveness and readiness checks.
 	health := NewHandler()
 
 	// Add a readiness check against the health of an upstream HTTP dependency
-	upstreamURL := "http://upstream-svc.example.com:8080/healthy"
 	health.AddReadinessCheck(
 		"upstream-dep-http",
-		HTTPGetCheck(upstreamURL, 500*time.Millisecond))
+		HTTPGetCheck(upstream.URL, 500*time.Millisecond))
 
 	// Implement a custom check with a 50 millisecond timeout.
-	health.AddLivenessCheck("custom-check-with-timeout", Timeout(func() error {
-		// Simulate some work that could take a long time
-		time.Sleep(time.Millisecond * 100)
-		return nil
-	}, 50*time.Millisecond))
+	health.AddLivenessCheck("custom-check-with-timeout",
+		Timeout(func() error {
+			// Simulate some work that could take a long time
+			time.Sleep(time.Millisecond * 100)
+			return nil
+		}, 50*time.Millisecond),
+	)
 
 	// Expose the readiness endpoints on a custom path /healthz mixed into
 	// our main application mux.
@@ -122,7 +131,10 @@ func Example_advanced() {
 	// Connection: close
 	// Content-Type: application/json; charset=utf-8
 	//
-	// {}
+	// {
+	//     "custom-check-with-timeout": "timed out after 50ms",
+	//     "upstream-dep-http": "OK"
+	// }
 }
 
 func Example_metrics() {
@@ -161,13 +173,19 @@ func Example_metrics() {
 
 	// Output:
 	// HTTP/1.1 200 OK
-	// Content-Length: 245
+	// Connection: close
 	// Content-Type: text/plain; version=0.0.4; charset=utf-8
 	//
-	// # HELP example_healthcheck_status Current check status (0 indicates success, 1 indicates failure)
-	// # TYPE example_healthcheck_status gauge
-	// example_healthcheck_status{check="failing-check"} 1
-	// example_healthcheck_status{check="successful-check"} 0
+	// # HELP example_healthy_error Current check status has error (0 indicates no error, 1 indicates error)
+	// # TYPE example_healthy_error gauge
+	// example_healthy_error{check="live",name="successful-check"} 0
+	// example_healthy_error{check="ready",name="failing-check"} 1
+}
+
+func upstream() (*httptest.Server, *url.URL) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	u, _ := url.Parse(s.URL)
+	return s, u
 }
 
 func dumpRequest(handler http.Handler, method string, path string) string {
