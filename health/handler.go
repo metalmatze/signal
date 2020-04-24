@@ -28,14 +28,42 @@ type basicHandler struct {
 	readinessChecks map[string]Check
 }
 
+type HandlerOption func(configuration *handlerConfiguration)
+
+type handlerConfiguration struct {
+	liveEndpoint  string
+	readyEndpoint string
+}
+
+func LiveEndpoint(endpoint string) HandlerOption {
+	return func(c *handlerConfiguration) {
+		c.liveEndpoint = endpoint
+	}
+}
+
+func ReadyEndpoint(endpoint string) HandlerOption {
+	return func(c *handlerConfiguration) {
+		c.readyEndpoint = endpoint
+	}
+}
+
 // NewHandler creates a new basic Handler
-func NewHandler() Handler {
+func NewHandler(options ...HandlerOption) Handler {
+	configuration := &handlerConfiguration{
+		liveEndpoint:  "/live",
+		readyEndpoint: "/ready",
+	}
+
+	for _, option := range options {
+		option(configuration)
+	}
+
 	h := &basicHandler{
 		livenessChecks:  make(map[string]Check),
 		readinessChecks: make(map[string]Check),
 	}
-	h.Handle("/live", http.HandlerFunc(h.LiveEndpoint))
-	h.Handle("/ready", http.HandlerFunc(h.ReadyEndpoint))
+	h.Handle(configuration.liveEndpoint, http.HandlerFunc(h.LiveEndpoint))
+	h.Handle(configuration.readyEndpoint, http.HandlerFunc(h.ReadyEndpoint))
 	return h
 }
 

@@ -35,10 +35,9 @@ func Example() {
 	// Add a readiness check to make sure an upstream dependency resolves in DNS.
 	// If this fails we don't want to receive requests, but we shouldn't be
 	// restarted or rescheduled.
-	upstreamHost := "upstream.example.com"
-	health.AddReadinessCheck(
-		"upstream-dep-dns",
-		DNSResolveCheck(upstreamHost, 50*time.Millisecond))
+	health.AddReadinessCheck("upstream-dns",
+		DNSResolveCheck("upstream.example.com", 50*time.Millisecond),
+	)
 
 	// Add a liveness check to detect Goroutine leaks. If this fails we want
 	// to be restarted/rescheduled.
@@ -52,6 +51,25 @@ func Example() {
 
 	// Output:
 	// HTTP/1.1 503 Service Unavailable
+	// Connection: close
+	// Content-Type: application/json; charset=utf-8
+	//
+	// {}
+}
+
+func Example_handlerEndpoints() {
+	// Create a Handler that we can use to register liveness and readiness checks.
+	// In this case explicitly set the paths for the endpoints to check for liveness and readiness.
+	health := NewHandler(
+		LiveEndpoint("/-/live"),
+		ReadyEndpoint("/-/ready"),
+	)
+
+	// Make a request to the readiness endpoint and print the response.
+	fmt.Print(dumpRequest(health, http.MethodGet, "/-/ready"))
+
+	// Output:
+	// HTTP/1.1 200 OK
 	// Connection: close
 	// Content-Type: application/json; charset=utf-8
 	//
