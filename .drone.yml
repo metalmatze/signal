@@ -15,6 +15,7 @@ steps:
     environment:
       CGO_ENABLED: 0
       GO111MODULE: on
+      GOPROXY: https://proxy.golang.org
     when:
       event:
         exclude:
@@ -28,6 +29,7 @@ steps:
     environment:
       CGO_ENABLED: 0
       GO111MODULE: on
+      GOPROXY: https://proxy.golang.org
     when:
       event:
         exclude:
@@ -41,6 +43,7 @@ steps:
     environment:
       CGO_ENABLED: 0
       GO111MODULE: on
+      GOPROXY: https://proxy.golang.org
     when:
       event:
         exclude:
