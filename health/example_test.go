@@ -57,7 +57,7 @@ func Example() {
 	//
 	// {
 	//     "goroutine-threshold": "OK",
-	//     "upstream-dep-http": "Get http://upstream-svc.example.com:8080/healthy: dial tcp: lookup upstream-svc.example.com on 127.0.0.11:53: no such host"
+	//     "upstream-dep-dns": "lookup upstream.example.com on 127.0.0.11:53: no such host"
 	// }
 }
 
