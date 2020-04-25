@@ -15,6 +15,7 @@
 package health
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -31,6 +32,14 @@ func TestHTTPGetCheck(t *testing.T) {
 	assert.NoError(t, HTTPGetCheck("https://www.google.com", 5*time.Second)())
 	assert.Error(t, HTTPGetCheck("http://google.com", 5*time.Second)(), "redirect should fail")
 	assert.Error(t, HTTPGetCheck("https://google.com/nonexistent", 5*time.Second)(), "404 should fail")
+}
+
+func TestHTTPCheck(t *testing.T) {
+	assert.NoError(t, HTTPCheck("https://www.google.com", http.MethodGet, http.StatusOK, 5*time.Second)())
+	assert.NoError(t, HTTPCheck("https://www.google.com", http.MethodPost, http.StatusMethodNotAllowed, 5*time.Second)())
+	assert.Error(t, HTTPCheck("https://www.google.com", http.MethodPost, http.StatusOK, 5*time.Second)())
+	assert.NoError(t, HTTPCheck("https://www.google.com/nonexistent", http.MethodGet, http.StatusNotFound, 5*time.Second)())
+	assert.Error(t, HTTPCheck("https://www.google.com/nonexistent", http.MethodGet, http.StatusOK, 5*time.Second)())
 }
 
 func TestDatabasePingCheck(t *testing.T) {
