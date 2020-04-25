@@ -21,18 +21,16 @@ import (
 )
 
 type metricsHandler struct {
-	handler   Handler
-	registry  prometheus.Registerer
-	namespace string
+	handler  Handler
+	registry prometheus.Registerer
 }
 
-// NewMetricsHandler returns a healthy Handler that also exposes metrics
+// NewMetricsHandler returns a healthy Handler that writes the current check status
 // into the provided Prometheus registry.
-func NewMetricsHandler(registry prometheus.Registerer, namespace string) Handler {
+func NewMetricsHandler(handler Handler, registry prometheus.Registerer) Handler {
 	return &metricsHandler{
-		handler:   NewHandler(),
-		registry:  registry,
-		namespace: namespace,
+		handler:  handler,
+		registry: registry,
 	}
 }
 
@@ -59,17 +57,15 @@ func (h *metricsHandler) ReadyEndpoint(w http.ResponseWriter, r *http.Request) {
 func (h *metricsHandler) wrap(labels prometheus.Labels, check Check) Check {
 	h.registry.MustRegister(prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
-			Namespace:   h.namespace,
-			Subsystem:   "healthy",
-			Name:        "error",
-			Help:        "Current check status has error (0 indicates no error, 1 indicates error)",
+			Name:        "healthcheck_healthy",
+			Help:        "Indicates if check is healthy (1 is healthy, 0 is unhealthy)",
 			ConstLabels: labels,
 		},
 		func() float64 {
 			if check() != nil {
-				return 1
+				return 0
 			}
-			return 0
+			return 1
 		},
 	))
 	return check
