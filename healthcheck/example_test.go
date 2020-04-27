@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package health
+package healthcheck
 
 import (
 	"database/sql"
@@ -33,25 +33,28 @@ func Example() {
 	_, upstreamURL := upstream() // Mock some upstream Server
 
 	// Create a Handler that we can use to register liveness and readiness checks.
-	health := NewHandler()
+	healthchecks := NewHandler()
 
 	// Add a readiness check to make sure an upstream dependency resolves in DNS.
 	// If this fails we don't want to receive requests, but we shouldn't be
 	// restarted or rescheduled.
 	upstreamHost := upstreamURL.Hostname()
-	health.AddReadinessCheck(
-		"upstream-dep-dns",
+	healthchecks.AddReadinessCheck(
+		"upstream-dependency-dns",
 		DNSResolveCheck(upstreamHost, 50*time.Millisecond))
 
 	// Add a liveness check to detect Goroutine leaks. If this fails we want
 	// to be restarted/rescheduled.
-	health.AddLivenessCheck("goroutine-threshold", GoroutineCountCheck(100))
+	healthchecks.AddLivenessCheck(
+		"goroutine-threshold",
+		GoroutineCountCheck(100),
+	)
 
 	// Serve http://0.0.0.0:8080/live and http://0.0.0.0:8080/ready endpoints.
-	// go http.ListenAndServe("0.0.0.0:8080", health)
+	// go http.ListenAndServe("0.0.0.0:8080", healthchecks)
 
 	// Make a request to the readiness endpoint and print the response.
-	fmt.Print(dumpRequest(health, "GET", "/ready"))
+	fmt.Print(dumpRequest(healthchecks, "GET", "/ready"))
 
 	// Output:
 	// HTTP/1.1 200 OK
@@ -60,7 +63,7 @@ func Example() {
 	//
 	// {
 	//     "goroutine-threshold": "OK",
-	//     "upstream-dep-dns": "OK"
+	//     "upstream-dependency-dns": "OK"
 	// }
 }
 
@@ -70,17 +73,17 @@ func Example_database() {
 	database = connectToDatabase()
 
 	// Create a Handler that we can use to register liveness and readiness checks.
-	health := NewHandler()
+	healthchecks := NewHandler()
 
 	// Add a readiness check to we don't receive requests unless we can reach
 	// the database with a ping in <1 second.
-	health.AddReadinessCheck("database", DatabasePingCheck(database, 1*time.Second))
+	healthchecks.AddReadinessCheck("database", DatabasePingCheck(database, 1*time.Second))
 
 	// Serve http://0.0.0.0:8080/live and http://0.0.0.0:8080/ready endpoints.
-	// go http.ListenAndServe("0.0.0.0:8080", health)
+	// go http.ListenAndServe("0.0.0.0:8080", healthchecks)
 
 	// Make a request to the readiness endpoint and print the response.
-	fmt.Print(dumpRequest(health, "GET", "/ready"))
+	fmt.Print(dumpRequest(healthchecks, "GET", "/ready"))
 
 	// Output:
 	// HTTP/1.1 200 OK
@@ -96,15 +99,16 @@ func Example_advanced() {
 	upstream, _ := upstream() // Mock some upstream Server
 
 	// Create a Handler that we can use to register liveness and readiness checks.
-	health := NewHandler()
+	healthchecks := NewHandler()
 
 	// Add a readiness check against the health of an upstream HTTP dependency
-	health.AddReadinessCheck(
-		"upstream-dep-http",
+	healthchecks.AddReadinessCheck(
+		"upstream-dependency-http",
 		HTTPGetCheck(upstream.URL, 500*time.Millisecond))
 
 	// Implement a custom check with a 50 millisecond timeout.
-	health.AddLivenessCheck("custom-check-with-timeout",
+	healthchecks.AddLivenessCheck(
+		"custom-check-with-timeout",
 		Timeout(func() error {
 			// Simulate some work that could take a long time
 			time.Sleep(time.Millisecond * 100)
@@ -118,7 +122,7 @@ func Example_advanced() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
 	})
-	mux.HandleFunc("/healthz", health.ReadyEndpoint)
+	mux.HandleFunc("/healthz", healthchecks.ReadyEndpoint)
 
 	// Sleep for just a moment to make sure our Async handler had a chance to run
 	time.Sleep(500 * time.Millisecond)
@@ -133,7 +137,7 @@ func Example_advanced() {
 	//
 	// {
 	//     "custom-check-with-timeout": "timed out after 50ms",
-	//     "upstream-dep-http": "OK"
+	//     "upstream-dependency-http": "OK"
 	// }
 }
 
@@ -143,17 +147,23 @@ func Example_metrics() {
 
 	// Create a metrics-exposing Handler for the Prometheus registry
 	// It wraps the default handler to add metrics.
-	health := NewMetricsHandler(NewHandler(), registry)
+	healthchecks := NewMetricsHandler(NewHandler(), registry)
 
 	// Add a simple readiness check that always fails.
-	health.AddReadinessCheck("failing-check", func() error {
-		return fmt.Errorf("example failure")
-	})
+	healthchecks.AddReadinessCheck(
+		"failing-check",
+		func() error {
+			return fmt.Errorf("example failure")
+		},
+	)
 
 	// Add a liveness check that always succeeds
-	health.AddLivenessCheck("successful-check", func() error {
-		return nil
-	})
+	healthchecks.AddLivenessCheck(
+		"successful-check",
+		func() error {
+			return nil
+		},
+	)
 
 	// Create an "admin" listener on 0.0.0.0:9402
 	internal := http.NewServeMux()
@@ -162,11 +172,9 @@ func Example_metrics() {
 	// Expose prometheus metrics on /metrics
 	internal.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 
-	// Expose a liveness check on /live
-	internal.HandleFunc("/live", health.LiveEndpoint)
-
-	// Expose a readiness check on /ready
-	internal.HandleFunc("/ready", health.ReadyEndpoint)
+	// Expose a liveness check on /live and readiness check on /ready
+	internal.HandleFunc("/live", healthchecks.LiveEndpoint)
+	internal.HandleFunc("/ready", healthchecks.ReadyEndpoint)
 
 	// Make a request to the metrics endpoint and print the response.
 	fmt.Println(dumpRequest(internal, "GET", "/metrics"))
