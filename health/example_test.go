@@ -142,8 +142,8 @@ func Example_metrics() {
 	registry := prometheus.NewRegistry()
 
 	// Create a metrics-exposing Handler for the Prometheus registry
-	// The healthcheck related metrics will be prefixed with the provided namespace
-	health := NewMetricsHandler(registry, "example")
+	// It wraps the default handler to add metrics.
+	health := NewMetricsHandler(NewHandler(), registry)
 
 	// Add a simple readiness check that always fails.
 	health.AddReadinessCheck("failing-check", func() error {
@@ -156,30 +156,30 @@ func Example_metrics() {
 	})
 
 	// Create an "admin" listener on 0.0.0.0:9402
-	adminMux := http.NewServeMux()
-	// go http.ListenAndServe("0.0.0.0:9402", adminMux)
+	internal := http.NewServeMux()
+	// go http.ListenAndServe("0.0.0.0:9402", internal)
 
 	// Expose prometheus metrics on /metrics
-	adminMux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	internal.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 
 	// Expose a liveness check on /live
-	adminMux.HandleFunc("/live", health.LiveEndpoint)
+	internal.HandleFunc("/live", health.LiveEndpoint)
 
 	// Expose a readiness check on /ready
-	adminMux.HandleFunc("/ready", health.ReadyEndpoint)
+	internal.HandleFunc("/ready", health.ReadyEndpoint)
 
 	// Make a request to the metrics endpoint and print the response.
-	fmt.Println(dumpRequest(adminMux, "GET", "/metrics"))
+	fmt.Println(dumpRequest(internal, "GET", "/metrics"))
 
 	// Output:
 	// HTTP/1.1 200 OK
 	// Connection: close
 	// Content-Type: text/plain; version=0.0.4; charset=utf-8
 	//
-	// # HELP example_healthy_error Current check status has error (0 indicates no error, 1 indicates error)
-	// # TYPE example_healthy_error gauge
-	// example_healthy_error{check="live",name="successful-check"} 0
-	// example_healthy_error{check="ready",name="failing-check"} 1
+	// # HELP healthcheck Indicates if check is healthy (1 is healthy, 0 is unhealthy)
+	// # TYPE healthcheck gauge
+	// healthcheck{check="live",name="successful-check"} 1
+	// healthcheck{check="ready",name="failing-check"} 0
 }
 
 func upstream() (*httptest.Server, *url.URL) {

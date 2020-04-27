@@ -28,7 +28,8 @@ import (
 )
 
 func TestNewMetricsHandler(t *testing.T) {
-	handler := NewMetricsHandler(prometheus.DefaultRegisterer, "test")
+	reg := prometheus.NewRegistry()
+	handler := NewMetricsHandler(NewHandler(), reg)
 
 	for _, name := range []string{"aaa", "bbb", "ccc"} {
 		check := func() error {
@@ -49,7 +50,7 @@ func TestNewMetricsHandler(t *testing.T) {
 		handler.AddLivenessCheck(name, check)
 	}
 
-	metricsHandler := promhttp.Handler()
+	metricsHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	req, err := http.NewRequest("GET", "/metrics", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -60,25 +61,25 @@ func TestNewMetricsHandler(t *testing.T) {
 	lines := strings.Split(rr.Body.String(), "\n")
 	var relevantLines []string
 	for _, line := range lines {
-		if strings.HasPrefix(line, "test_healthy_error") {
+		if strings.HasPrefix(line, "healthcheck") {
 			relevantLines = append(relevantLines, line)
 		}
 	}
 	sort.Strings(relevantLines)
 	actualMetrics := strings.Join(relevantLines, "\n")
 	expectedMetrics := strings.TrimSpace(`
-test_healthy_error{check="live",name="aaa"} 0
-test_healthy_error{check="live",name="bbb"} 0
-test_healthy_error{check="live",name="ccc"} 0
-test_healthy_error{check="live",name="ddd"} 1
-test_healthy_error{check="live",name="eee"} 1
-test_healthy_error{check="live",name="fff"} 1
-test_healthy_error{check="ready",name="aaa"} 0
-test_healthy_error{check="ready",name="bbb"} 0
-test_healthy_error{check="ready",name="ccc"} 0
-test_healthy_error{check="ready",name="ddd"} 1
-test_healthy_error{check="ready",name="eee"} 1
-test_healthy_error{check="ready",name="fff"} 1
+healthcheck{check="live",name="aaa"} 1
+healthcheck{check="live",name="bbb"} 1
+healthcheck{check="live",name="ccc"} 1
+healthcheck{check="live",name="ddd"} 0
+healthcheck{check="live",name="eee"} 0
+healthcheck{check="live",name="fff"} 0
+healthcheck{check="ready",name="aaa"} 1
+healthcheck{check="ready",name="bbb"} 1
+healthcheck{check="ready",name="ccc"} 1
+healthcheck{check="ready",name="ddd"} 0
+healthcheck{check="ready",name="eee"} 0
+healthcheck{check="ready",name="fff"} 0
 `)
 	if actualMetrics != expectedMetrics {
 		t.Errorf("expected metrics:\n%s\n\nactual metrics:\n%s\n", expectedMetrics, actualMetrics)
@@ -86,7 +87,7 @@ test_healthy_error{check="ready",name="fff"} 1
 }
 
 func TestNewMetricsHandlerEndpoints(t *testing.T) {
-	handler := NewMetricsHandler(prometheus.NewRegistry(), "test")
+	handler := NewMetricsHandler(NewHandler(), prometheus.NewRegistry())
 	handler.AddReadinessCheck("fail", func() error {
 		return fmt.Errorf("failing readiness check")
 	})
