@@ -40,21 +40,35 @@ func TCPDialCheck(addr string, timeout time.Duration) Check {
 // specified URL. The check fails if the response times out or returns a non-200
 // status code.
 func HTTPGetCheck(url string, timeout time.Duration) Check {
+	return func() error {
+		return HTTPCheck(url, http.MethodGet, http.StatusOK, timeout)()
+	}
+}
+
+// HTTPCheck returns a Check that performs a HTTP request against the specified URL.
+// The Check fails if the response times out or returns an unexpected status code.
+func HTTPCheck(url string, method string, status int, timeout time.Duration) Check {
 	client := http.Client{
 		Timeout: timeout,
-		// never follow redirects
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
+
 	return func() error {
-		resp, err := client.Get(url)
+		req, err := http.NewRequest(method, url, nil)
 		if err != nil {
 			return err
 		}
-		resp.Body.Close()
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("returned status %d", resp.StatusCode)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != status {
+			return fmt.Errorf("returned status %d, expected %d", resp.StatusCode, status)
 		}
 		return nil
 	}
