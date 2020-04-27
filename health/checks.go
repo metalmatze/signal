@@ -65,6 +65,8 @@ func HTTPCheck(url string, method string, status int, timeout time.Duration) Che
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close()
+
 		if resp.StatusCode != status {
 			return fmt.Errorf("returned status %d, expected %d", resp.StatusCode, status)
 		}
