@@ -61,25 +61,25 @@ func TestNewMetricsHandler(t *testing.T) {
 	lines := strings.Split(rr.Body.String(), "\n")
 	var relevantLines []string
 	for _, line := range lines {
-		if strings.HasPrefix(line, "healthcheck_healthy") {
+		if strings.HasPrefix(line, "healthcheck") {
 			relevantLines = append(relevantLines, line)
 		}
 	}
 	sort.Strings(relevantLines)
 	actualMetrics := strings.Join(relevantLines, "\n")
 	expectedMetrics := strings.TrimSpace(`
-healthcheck_healthy{check="live",name="aaa"} 1
-healthcheck_healthy{check="live",name="bbb"} 1
-healthcheck_healthy{check="live",name="ccc"} 1
-healthcheck_healthy{check="live",name="ddd"} 0
-healthcheck_healthy{check="live",name="eee"} 0
-healthcheck_healthy{check="live",name="fff"} 0
-healthcheck_healthy{check="ready",name="aaa"} 1
-healthcheck_healthy{check="ready",name="bbb"} 1
-healthcheck_healthy{check="ready",name="ccc"} 1
-healthcheck_healthy{check="ready",name="ddd"} 0
-healthcheck_healthy{check="ready",name="eee"} 0
-healthcheck_healthy{check="ready",name="fff"} 0
+healthcheck{check="live",name="aaa"} 1
+healthcheck{check="live",name="bbb"} 1
+healthcheck{check="live",name="ccc"} 1
+healthcheck{check="live",name="ddd"} 0
+healthcheck{check="live",name="eee"} 0
+healthcheck{check="live",name="fff"} 0
+healthcheck{check="ready",name="aaa"} 1
+healthcheck{check="ready",name="bbb"} 1
+healthcheck{check="ready",name="ccc"} 1
+healthcheck{check="ready",name="ddd"} 0
+healthcheck{check="ready",name="eee"} 0
+healthcheck{check="ready",name="fff"} 0
 `)
 	if actualMetrics != expectedMetrics {
 		t.Errorf("expected metrics:\n%s\n\nactual metrics:\n%s\n", expectedMetrics, actualMetrics)

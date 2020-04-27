@@ -57,7 +57,7 @@ func (h *metricsHandler) ReadyEndpoint(w http.ResponseWriter, r *http.Request) {
 func (h *metricsHandler) wrap(labels prometheus.Labels, check Check) Check {
 	h.registry.MustRegister(prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
-			Name:        "healthcheck_healthy",
+			Name:        "healthcheck",
 			Help:        "Indicates if check is healthy (1 is healthy, 0 is unhealthy)",
 			ConstLabels: labels,
 		},

@@ -176,10 +176,10 @@ func Example_metrics() {
 	// Connection: close
 	// Content-Type: text/plain; version=0.0.4; charset=utf-8
 	//
-	// # HELP healthcheck_healthy Indicates if check is healthy (1 is healthy, 0 is unhealthy)
-	// # TYPE healthcheck_healthy gauge
-	// healthcheck_healthy{check="live",name="successful-check"} 1
-	// healthcheck_healthy{check="ready",name="failing-check"} 0
+	// # HELP healthcheck Indicates if check is healthy (1 is healthy, 0 is unhealthy)
+	// # TYPE healthcheck gauge
+	// healthcheck{check="live",name="successful-check"} 1
+	// healthcheck{check="ready",name="failing-check"} 0
 }
 
 func upstream() (*httptest.Server, *url.URL) {
