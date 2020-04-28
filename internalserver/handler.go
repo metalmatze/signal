@@ -15,6 +15,7 @@ import (
 type Handler struct {
 	http.ServeMux
 	endpoints []endpoint
+	name      string
 }
 
 // endpoint has a description to a pattern.
@@ -25,7 +26,7 @@ type endpoint struct {
 
 // NewHandler creates a new internalserver Handler.
 func NewHandler(options ...Option) *Handler {
-	h := &Handler{}
+	h := &Handler{name: "Internal"}
 
 	for _, option := range options {
 		option(h)
@@ -43,14 +44,10 @@ func (h *Handler) AddEndpoint(pattern string, description string, handler http.H
 		Description: description,
 	})
 
-	//"Cache-Control":   "no-cache, no-store, no-transform, must-revalidate, private, max-age=0",
-
 	// Sort endpoints by pattern after adding a new one, to always show them in the same order.
 	sort.Slice(h.endpoints, func(i, j int) bool {
 		return h.endpoints[i].Pattern < h.endpoints[j].Pattern
 	})
-
-	fmt.Println("Adding handler for", pattern)
 
 	h.HandleFunc(pattern, handler)
 }
@@ -69,6 +66,13 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 
 // Option is a func that modifies the configuration for the internalserver handler.
 type Option func(h *Handler)
+
+// WithName allows to set an application name for the internalserver handler.
+func WithName(name string) Option {
+	return func(h *Handler) {
+		h.name = name
+	}
+}
 
 // WithHealthchecks adds the healthchecks endpoints /live and /ready to the internalserver.
 func WithHealthchecks(healthchecks healthcheck.Handler) Option {
