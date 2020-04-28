@@ -13,11 +13,16 @@ import (
 
 type Handler struct {
 	http.ServeMux
-	endpoints map[string]string
+	endpoints []endpoint
+}
+
+type endpoint struct {
+	Pattern     string
+	Description string
 }
 
 func NewHandler(options ...Option) *Handler {
-	h := &Handler{endpoints: map[string]string{}}
+	h := &Handler{}
 
 	h.HandleFunc("/", h.index)
 
@@ -29,28 +34,23 @@ func NewHandler(options ...Option) *Handler {
 }
 
 func (h *Handler) AddEndpoint(pattern string, description string, handler http.HandlerFunc) {
-	h.endpoints[pattern] = description
+	h.endpoints = append(h.endpoints, endpoint{
+		Pattern:     pattern,
+		Description: description,
+	})
+
+	// Sort endpoints by pattern after adding a new one, to always show them in the same order.
+	sort.Slice(h.endpoints, func(i, j int) bool {
+		return h.endpoints[i].Pattern < h.endpoints[j].Pattern
+	})
+
 	h.HandleFunc(pattern, handler)
 }
 
 func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 	html := "<html><head><title>Internal</title></head><body>\n"
 
-	// No follows some sorting of endpoints to always show them in the same order.
-	type endpoint struct {
-		Pattern     string
-		Description string
-	}
-	var endpoints []endpoint
-
-	for p, d := range h.endpoints {
-		endpoints = append(endpoints, endpoint{Pattern: p, Description: d})
-	}
-	sort.Slice(endpoints, func(i, j int) bool {
-		return endpoints[i].Pattern < endpoints[j].Pattern
-	})
-
-	for _, e := range endpoints {
+	for _, e := range h.endpoints {
 		html += fmt.Sprintf("<p><a href='%s'>%s - %s</a></p>\n", e.Pattern, e.Pattern, e.Description)
 	}
 	html += `</body></html>`

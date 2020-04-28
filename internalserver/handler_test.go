@@ -14,7 +14,8 @@ func TestHandler_AddEndpoint(t *testing.T) {
 		_, _ = w.Write([]byte("bar"))
 	})
 
-	assert.Equal(t, "some handler", h.endpoints["/foo"])
+	assert.Len(t, h.endpoints, 1)
+	assert.Equal(t, endpoint{Pattern: "/foo", Description: "some handler"}, h.endpoints[0])
 
 	rr := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/foo", nil)
