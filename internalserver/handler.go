@@ -11,16 +11,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// Handler is a http.ServeMux that knows about all endpoints to render a nice index page.
 type Handler struct {
 	http.ServeMux
 	endpoints []endpoint
 }
 
+// endpoint has a description to a pattern.
 type endpoint struct {
 	Pattern     string
 	Description string
 }
 
+// NewHandler creates a new internalserver Handler.
 func NewHandler(options ...Option) *Handler {
 	h := &Handler{}
 
@@ -33,16 +36,21 @@ func NewHandler(options ...Option) *Handler {
 	return h
 }
 
+// AddEndpoint wraps HandleFunc for adding http handlers to add a meaningful description to the index page.
 func (h *Handler) AddEndpoint(pattern string, description string, handler http.HandlerFunc) {
 	h.endpoints = append(h.endpoints, endpoint{
 		Pattern:     pattern,
 		Description: description,
 	})
 
+	//"Cache-Control":   "no-cache, no-store, no-transform, must-revalidate, private, max-age=0",
+
 	// Sort endpoints by pattern after adding a new one, to always show them in the same order.
 	sort.Slice(h.endpoints, func(i, j int) bool {
 		return h.endpoints[i].Pattern < h.endpoints[j].Pattern
 	})
+
+	fmt.Println("Adding handler for", pattern)
 
 	h.HandleFunc(pattern, handler)
 }
@@ -59,8 +67,10 @@ func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
+// Option is a func that modifies the configuration for the internalserver handler.
 type Option func(h *Handler)
 
+// WithHealthchecks adds the healthchecks endpoints /live and /ready to the internalserver.
 func WithHealthchecks(healthchecks healthcheck.Handler) Option {
 	return func(h *Handler) {
 		h.AddEndpoint(
@@ -76,6 +86,7 @@ func WithHealthchecks(healthchecks healthcheck.Handler) Option {
 	}
 }
 
+// WithPrometheusRegistry adds a /metrics endpoint to the internalserver.
 func WithPrometheusRegistry(registry *prometheus.Registry) Option {
 	return func(h *Handler) {
 		h.AddEndpoint(
@@ -86,6 +97,7 @@ func WithPrometheusRegistry(registry *prometheus.Registry) Option {
 	}
 }
 
+// WithPProf adds all pprof endpoints under /debug to the internalserver.
 func WithPProf() Option {
 	return func(h *Handler) {
 		m := http.NewServeMux()
