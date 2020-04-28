@@ -24,11 +24,11 @@ type endpoint struct {
 func NewHandler(options ...Option) *Handler {
 	h := &Handler{}
 
-	h.HandleFunc("/", h.index)
-
 	for _, option := range options {
 		option(h)
 	}
+
+	h.HandleFunc("/", h.index)
 
 	return h
 }
@@ -89,14 +89,17 @@ func WithPrometheusRegistry(registry *prometheus.Registry) Option {
 func WithPProf() Option {
 	return func(h *Handler) {
 		m := http.NewServeMux()
-		m.HandleFunc("/debug/pprof/*", pprof.Index)
-		m.HandleFunc("/pprof/cmdline", pprof.Cmdline)
+		m.HandleFunc("/debug/pprof/", pprof.Index)
+		m.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 		m.HandleFunc("/debug/pprof/profile", pprof.Profile)
 		m.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 		m.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		m.HandleFunc("/debug/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/debug/pprof/", http.StatusMovedPermanently)
+		})
 
 		h.AddEndpoint(
-			"/debug",
+			"/debug/",
 			"Exposes pprof endpoints to consume via HTTP",
 			m.ServeHTTP,
 		)
