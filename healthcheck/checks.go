@@ -58,15 +58,19 @@ func HTTPCheck(url string, method string, status int, timeout time.Duration) Che
 	return HTTPCheckClient(client, url, method, status, timeout)
 }
 
+// HTTPCheckClient returns a Check that performs a HTTP request against the specified URL.
+// The Check fails if the response times out or returns an unexpected status code.
+// On top of that it uses a custom client specified by the caller.
 func HTTPCheckClient(client *http.Client, url string, method string, status int, timeout time.Duration) Check {
 	return func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		req, err := http.NewRequestWithContext(ctx, method, url, nil)
+		req, err := http.NewRequest(method, url, nil)
 		if err != nil {
 			return err
 		}
+		req = req.WithContext(ctx)
 
 		resp, err := client.Do(req)
 		if err != nil {
