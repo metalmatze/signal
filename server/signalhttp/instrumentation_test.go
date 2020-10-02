@@ -13,9 +13,9 @@ import (
 func Example() {
 	registry := prometheus.NewRegistry()
 
-	// Create the HTTP instrumentation middleware with extra labels group and handler.
+	// Create the HTTP handler instrumenter with extra labels group and handler.
 	// The labels code and method are added out-of-the-box.
-	instrumenter := NewInstrumentationMiddleware(registry, []string{"group", "handler"})
+	instrumenter := NewHandlerInstrumenter(registry, []string{"group", "handler"})
 
 	r := http.NewServeMux()
 

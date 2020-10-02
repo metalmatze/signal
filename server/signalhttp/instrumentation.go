@@ -19,8 +19,8 @@ type HandlerInstrumenter interface {
 	NewHandler(labels prometheus.Labels, handler http.Handler) http.HandlerFunc
 }
 
-// NewInstrumentationMiddleware creates a new middleware that observes some metrics for HTTP handlers.
-func NewInstrumentationMiddleware(r prometheus.Registerer, extraLabels []string) HandlerInstrumenter {
+// NewHandlerInstrumenter creates a new middleware that observes some metrics for HTTP handlers.
+func NewHandlerInstrumenter(r prometheus.Registerer, extraLabels []string) HandlerInstrumenter {
 	labels := append([]string{"code", "method"}, extraLabels...)
 
 	ins := &instrumentationMiddleware{
