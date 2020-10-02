@@ -50,7 +50,7 @@ func NewHandlerInstrumenter(r prometheus.Registerer, extraLabels []string) Handl
 			prometheus.HistogramOpts{
 				Name:    "http_response_size_bytes",
 				Help:    "Histogram of response size for HTTP requests.",
-				Buckets: prometheus.ExponentialBuckets(100, 10, 8), //nolint:gomnd
+				Buckets: prometheus.ExponentialBuckets(100, 10, 8),
 			},
 			labels,
 		),
