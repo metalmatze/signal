@@ -69,8 +69,7 @@ func Example() {
 
 func Example_database() {
 	// Connect to a database/sql database
-	var database *sql.DB
-	database = connectToDatabase()
+	database := connectToDatabase()
 
 	// Create a Handler that we can use to register liveness and readiness checks.
 	healthchecks := NewHandler()
@@ -120,7 +119,7 @@ func Example_advanced() {
 	// our main application mux.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, world!"))
+		_, _ = w.Write([]byte("Hello, world!"))
 	})
 	mux.HandleFunc("/healthz", healthchecks.ReadyEndpoint)
 
