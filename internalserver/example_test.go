@@ -30,6 +30,7 @@ func Example() {
 	// Content-Type: text/html; charset=utf-8
 	//
 	// <html><head><title>Internal</title></head><body>
+	// <h1>Internal</h1>
 	// <p><a href='/live'>/live - Exposes liveness checks</a></p>
 	// <p><a href='/metrics'>/metrics - Exposes Prometheus metrics</a></p>
 	// <p><a href='/ready'>/ready - Exposes readiness checks</a></p>
@@ -59,6 +60,7 @@ func Example_custom_endpoint() {
 	// Content-Type: text/html; charset=utf-8
 	//
 	// <html><head><title>Internal</title></head><body>
+	// <h1>Internal</h1>
 	// <p><a href='/foo'>/foo - My other signal to expose internally</a></p>
 	// <p><a href='/metrics'>/metrics - Exposes Prometheus metrics</a></p>
 	// </body></html>
