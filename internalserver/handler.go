@@ -67,7 +67,8 @@ func (h *Handler) AddEndpoint(pattern string, description string, handler http.H
 }
 
 func (h *Handler) index(w http.ResponseWriter, r *http.Request) {
-	html := "<html><head><title>Internal</title></head><body>\n"
+	html := fmt.Sprintf("<html><head><title>%s</title></head><body>\n", h.name)
+	html += fmt.Sprintf("<h1>%s</h1>\n", h.name)
 
 	for _, e := range h.endpoints {
 		html += fmt.Sprintf("<p><a href='%s'>%s - %s</a></p>\n", e.Pattern, e.Pattern, e.Description)
