@@ -107,11 +107,16 @@ func WithHealthchecks(healthchecks healthcheck.Handler) Option {
 
 // WithPrometheusRegistry adds a /metrics endpoint to the internalserver.
 func WithPrometheusRegistry(registry *prometheus.Registry) Option {
+	return WithPrometheusGatherer(registry)
+}
+
+// WithPrometheusGatherer adds a /metrics endpoint to the internalserver.
+func WithPrometheusGatherer(gatherer prometheus.Gatherer) Option {
 	return func(h *Handler) {
 		h.AddEndpoint(
 			"/metrics",
 			"Exposes Prometheus metrics",
-			promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP,
+			promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}).ServeHTTP,
 		)
 	}
 }

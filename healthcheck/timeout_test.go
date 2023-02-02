@@ -34,7 +34,7 @@ func TestTimeout(t *testing.T) {
 		t.Errorf("expected Timeout() to be true, got %v", err)
 	}
 
-	if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() {
+	if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() { //nolint:staticcheck
 		t.Errorf("expected Temporary() to be true, got %v", err)
 	}
 
